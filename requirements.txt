@@ -1,0 +1,7 @@
+streamlit
+speechrecognition
+gtts
+googletrans==4.0.0rc1
+pillow
+langdetect
+openai
