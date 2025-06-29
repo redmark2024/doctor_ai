@@ -1,6 +1,6 @@
 import streamlit as st
 import speech_recognition as sr
-import pyttsx3
+from gtts import gTTS
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
