@@ -12,4 +12,5 @@ pandas
 pyttsx3
 opencv-python-headless==4.5.5.64
 deep-translator
+reportlab
 
