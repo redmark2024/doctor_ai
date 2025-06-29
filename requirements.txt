@@ -14,3 +14,4 @@ folium
 Pillow
 langdetect
 requests
+streamlit_folium
