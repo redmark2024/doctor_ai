@@ -21,7 +21,6 @@ from reportlab.lib.pagesizes import letter
 import qrcode
 import json
 import re
-from streamlit_lottie import st_lottie
 
 # Page configuration
 st.set_page_config(
@@ -499,26 +498,7 @@ def diagnose(symptoms):
         "emergency": False
     }
 
-def load_lottieurl(url: str):
-    r = requests.get(url)
-    if r.status_code != 200:
-        return None
-    return r.json()
-
 def main():
-    lottie_welcome = load_lottieurl("https://assets2.lottiefiles.com/packages/lf20_yd9y7c.json")
-
-    if lottie_welcome:
-        st_lottie(
-            lottie_welcome,
-            speed=1,
-            width=300,
-            height=300,
-            key="welcome"
-        )
-    else:
-        st.warning("Failed to load animation.")
-
     st.markdown("### 👋 Welcome to RedMark AI Doctor!")
     
     st.title("🩸 RedMark - Your Medical Guide")
@@ -633,3 +613,4 @@ def main():
 
 if __name__ == "__main__":
     main() 
+
