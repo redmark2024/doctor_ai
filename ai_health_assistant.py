@@ -5,7 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import requests
-import cv2
+#import cv2
 from PIL import Image
 import io
 import hashlib
