@@ -1,19 +1,4 @@
 streamlit
-opencv-python
-gtts
-speechrecognition
-googletrans==4.0.0rc1
-pillow
-langdetect
-openai
-plotly
-numpy
-pandas
-pyttsx3
-opencv-python-headless==4.5.5.64
-deep-translator
-reportlab
-streamlit
 speechrecognition
 pyttsx3
 plotly
@@ -25,3 +10,4 @@ gtts
 pandas
 numpy
 qrcode
+folium
