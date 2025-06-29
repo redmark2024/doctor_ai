@@ -19,10 +19,9 @@ from deep_translator import GoogleTranslator
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 import qrcode
-import folium
-from streamlit_folium import folium_static
 import json
 import re
+from streamlit_lottie import st_lottie
 
 # Page configuration
 st.set_page_config(
@@ -356,44 +355,14 @@ def text_to_speech(text, language):
         return False
 
 def analyze_image(image):
-    """Analyze uploaded image for symptoms"""
+    """Analyze uploaded image for symptoms (PIL-only version)"""
     try:
-        # Convert to OpenCV format
-        img_array = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        
-        # Simple color analysis for symptom detection
-        hsv = cv2.cvtColor(img_array, cv2.COLOR_BGR2HSV)
-        
-        # Detect red areas (potential rash)
-        lower_red = np.array([0, 50, 50])
-        upper_red = np.array([10, 255, 255])
-        red_mask = cv2.inRange(hsv, lower_red, upper_red)
-        
-        # Detect yellow areas (potential jaundice)
-        lower_yellow = np.array([20, 100, 100])
-        upper_yellow = np.array([30, 255, 255])
-        yellow_mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
-        
-        # Detect white areas (potential fungal infection)
-        lower_white = np.array([0, 0, 200])
-        upper_white = np.array([180, 30, 255])
-        white_mask = cv2.inRange(hsv, lower_white, upper_white)
-        
-        red_pixels = cv2.countNonZero(red_mask)
-        yellow_pixels = cv2.countNonZero(yellow_mask)
-        white_pixels = cv2.countNonZero(white_mask)
-        total_pixels = img_array.shape[0] * img_array.shape[1]
-        
-        red_percentage = (red_pixels / total_pixels) * 100
-        yellow_percentage = (yellow_pixels / total_pixels) * 100
-        white_percentage = (white_pixels / total_pixels) * 100
-        
-        if red_percentage > 5:
+        # Example: Check for dominant color (very basic)
+        colors = image.getcolors(image.size[0]*image.size[1])
+        most_frequent_color = max(colors, key=lambda x: x[0])[1]
+        # Dummy logic: if red is dominant, say 'rash', else 'normal'
+        if most_frequent_color[0] > 200 and most_frequent_color[1] < 100 and most_frequent_color[2] < 100:
             return "rash"
-        elif yellow_percentage > 5:
-            return "jaundice"
-        elif white_percentage > 10:
-            return "fungal"
         else:
             return "normal"
     except Exception as e:
@@ -485,25 +454,6 @@ def create_analytics_charts():
     
     return charts
 
-def create_user_map():
-    """Create a map showing user locations"""
-    if not st.session_state.user_stats['user_locations']:
-        return None
-    
-    # Create a map centered on India
-    m = folium.Map(location=[20.5937, 78.9629], zoom_start=5)
-    
-    for location, count in st.session_state.user_stats['user_locations'].items():
-        if location != "Unknown":
-            # Simple geocoding (in real app, use proper geocoding service)
-            folium.Marker(
-                location=[random.uniform(8, 37), random.uniform(68, 97)],  # India bounds
-                popup=f"{location}: {count} users",
-                icon=folium.Icon(color='red', icon='info-sign')
-            ).add_to(m)
-    
-    return m
-
 def chatbot_followup(symptoms, diagnosis):
     """Generate follow-up questions for better diagnosis"""
     followup_questions = []
@@ -549,7 +499,19 @@ def diagnose(symptoms):
         "emergency": False
     }
 
+def load_lottieurl(url: str):
+    r = requests.get(url)
+    if r.status_code != 200:
+        return None
+    return r.json()
+
 def main():
+    st_lottie(
+        load_lottieurl("https://assets2.lottiefiles.com/packages/lf20_yd9y7c.json"),
+        speed=1, width=300, height=300, key="welcome"
+    )
+    st.markdown("### 👋 Welcome to RedMark AI Doctor!")
+    
     st.title("🩸 RedMark - Your Medical Guide")
     st.markdown("---")
     
@@ -578,10 +540,9 @@ def main():
         st.markdown(f"**Active Users:** 🟢 {st.session_state.user_stats['active_users']}")
         st.metric("Total Diagnoses", st.session_state.user_stats['total_diagnoses'])
         st.metric("Emergency Cases", st.session_state.user_stats['emergency_cases'])
-        # Talk to real doctor button
-        st.header("🩺 Need Real Help?")
-        if st.button("Talk to a Real Doctor"):
-            st.info("📞 Call: +91-1800-XXX-XXXX\n📧 Email: doctor@aihealth.com\n💬 WhatsApp: +91-98765-43210")
+        # Add a button to show total users and active users
+        if st.button('Show User Stats'):
+            st.info(f"Total Users: {st.session_state.user_stats['total_users']}\nActive Users: {st.session_state.user_stats['active_users']}")
     # Main area
     col1, col2 = st.columns([2, 1])
     with col1:
@@ -602,26 +563,27 @@ def main():
         user_message = st.text_input("Type your message:", key="chat_input")
         if st.button("Send"):
             if user_message:
-                symptoms = extract_symptoms(user_message)
-                if not symptoms:
-                    st.session_state.chat_history.append({
-                        "role": "assistant", "name": "RedMark",
-                        "content": "Sorry, I couldn't detect any symptoms. Please describe how you feel in more detail."
-                    })
-                else:
-                    diagnosis = diagnose(symptoms)
-                    st.session_state.chat_history.append({
-                        "role": "assistant", "name": "RedMark",
-                        "content": (
-                            f"**Condition:** {diagnosis['condition']}\n"
-                            f"**Home Treatment:** {diagnosis['home_treatment']}\n"
-                            f"**Advice:** {diagnosis['advice']}\n"
-                            f"**Watch Out For:** {diagnosis.get('watch_out_for', '')}\n"
-                            + ("🚨 Your symptoms may indicate a serious condition. Please consult a doctor immediately or visit the nearest hospital."
-                               if diagnosis['emergency'] else
-                               "This appears to be a non-emergency. Please try the suggested home treatments. If symptoms persist or worsen after 3–5 days, please consult a doctor.")
-                        )
-                    })
+                with st.spinner('Analyzing your symptoms...'):
+                    symptoms = extract_symptoms(user_message)
+                    if not symptoms:
+                        st.session_state.chat_history.append({
+                            "role": "assistant", "name": "RedMark",
+                            "content": "Sorry, I couldn't detect any symptoms. Please describe how you feel in more detail."
+                        })
+                    else:
+                        diagnosis = diagnose(symptoms)
+                        st.session_state.chat_history.append({
+                            "role": "assistant", "name": "RedMark",
+                            "content": (
+                                f"**Condition:** {diagnosis['condition']}\n"
+                                f"**Home Treatment:** {diagnosis['home_treatment']}\n"
+                                f"**Advice:** {diagnosis['advice']}\n"
+                                f"**Watch Out For:** {diagnosis.get('watch_out_for', '')}\n"
+                                + ("🚨 Your symptoms may indicate a serious condition. Please consult a doctor immediately or visit the nearest hospital."
+                                   if diagnosis['emergency'] else
+                                   "This appears to be a non-emergency. Please try the suggested home treatments. If symptoms persist or worsen after 3–5 days, please consult a doctor.")
+                            )
+                        })
         # Display chat history in a user-friendly way
         for message in st.session_state.chat_history:
             if message["role"] == "user":
@@ -644,14 +606,6 @@ def main():
         
         if 'emergency_pie' in charts:
             st.plotly_chart(charts['emergency_pie'], use_container_width=True)
-        
-        # User map
-        st.subheader("🗺️ User Locations")
-        user_map = create_user_map()
-        if user_map:
-            folium_static(user_map)
-        else:
-            st.info("No location data available yet.")
     
     # Footer
     st.markdown("---")
@@ -666,6 +620,7 @@ def main():
         unsafe_allow_html=True
     )
 
+    st.image("https://media.giphy.com/media/3o7aD2saalBwwftBIY/giphy.gif", width=300)
+
 if __name__ == "__main__":
     main() 
-
