@@ -506,10 +506,19 @@ def load_lottieurl(url: str):
     return r.json()
 
 def main():
-    st_lottie(
-        load_lottieurl("https://assets2.lottiefiles.com/packages/lf20_yd9y7c.json"),
-        speed=1, width=300, height=300, key="welcome"
-    )
+    lottie_welcome = load_lottieurl("https://assets2.lottiefiles.com/packages/lf20_yd9y7c.json")
+
+    if lottie_welcome:
+        st_lottie(
+            lottie_welcome,
+            speed=1,
+            width=300,
+            height=300,
+            key="welcome"
+        )
+    else:
+        st.warning("Failed to load animation.")
+
     st.markdown("### 👋 Welcome to RedMark AI Doctor!")
     
     st.title("🩸 RedMark - Your Medical Guide")
